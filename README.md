@@ -16,18 +16,35 @@ ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_
 
 The URLs you insert should point to an image beacon url under your control. Providing that you get in your (apache|nginx).log files all the RUM data you ever dreamed of.
 
+## Installation
+
+1) Just include the file as
+
+```html
+<script src="rum.js"></script>
+```
+anywhere in your project. Preferably at the very end of your document.
+
+2) You must have a server under your control where the JavaScript can send the data to. E.g. Apache or nginix where
+you have good access to the logfiles.
+
+3) For optimal evaluation of the data you use a logfile parser/analyzer such as splunk together graphite.
+
+
 ## Requirements
 
 drop-in rum.js only works with browsers supporting the navigation.timing api (https://dvcs.w3.org/hg/webperf/raw-file/tip/specs/NavigationTiming/Overview.html).
 Those are currently: Firefox 7+, Chrome 5+ and IE9+
 
 Oh, and you will need jQuery.
-Pull request for a jQuery-less version is welcome.
+Pull requests for a jQuery-less version are welcome.
 
 ## Data being delivered
 
 The format in the logs will look like:
 https://www.example.com/some_rum_url.gif?networkTime=386&domTime=431&complete=770&dnsTime=0&timeToFirstClick=7039&clickObject=DIV%3A&timeFromMoveToClick=6548&parentURL=https%3A%2F%2Fwww.example.com%2F&referrer=&htmlLength=110186&numberStylesheets=3
+
+### Performance Data
 
 <table>
   <tr>
@@ -76,7 +93,35 @@ https://www.example.com/some_rum_url.gif?networkTime=386&domTime=431&complete=77
   </tr>
   <tr>
     <td>numberStylesheets</td>
-    <td>The number of Stylesheets being loaded from this page. Two is a good number, more than 5 far too mcuh.</td>
+    <td>The number of Stylesheets being loaded from this page. Two is a good number, more than 5 far too much.</td>
   </tr>
-
+  <tr>
+    <td>pageViewsUntilCheckout</td>
+    <td>The number of pageviews a user performs until he buys something on your site.  Indicator is when he arrives at URL_PATTERN_FOR_CHECKOUT_PAGE . Afterwards the counter here is resetted. </td>
+  </tr>
+  <tr>
+    <td>clicksUntilCheckout</td>
+    <td>The number of click a user performs until he buys something on your site. Indicator is when he arrives at URL_PATTERN_FOR_CHECKOUT_PAGE . Afterwards the counter here is resetted. Can give some insights to your UX on how click intensively your website is (JIRA or Typo3 should have awesome high numbers here).</td>
+  </tr>
 </table>
+
+### Print out data
+
+<table>
+  <tr>
+    <th>parameter</th>
+    <th>value</th>
+  </tr>
+  <tr>
+    <td>print</td>
+    <td>Just an integer 1. You need to sum them up get the overall printouts per time period.</td>
+  </tr>
+</table>
+
+### JavaScript Errors
+
+### use of console.log
+
+### use of alert()
+
+
