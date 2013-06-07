@@ -154,7 +154,8 @@
    */
 
   function observePrintEvents() {
-    if (w.matchMedia) {
+    //IE doesnt properly implement matchMedia();
+    if (w.matchMedia && !$.browser.msie) {
       w.matchMedia('print').addListener(function(mql) {
         if (mql.matches) {
           trackPrint();
@@ -186,7 +187,6 @@
   w.onerror = computeJSerrors;
 
  /**
-   *  Yeah, hot stuff derived from pair programming-jam-awesome-yay-session with MC Kraus.
    *  We override window.alert and console.log and silently add an image request.
    *  With that, we can gain knowledge whenever Mr Evil uses console.log or alert to XSS our site.
    *  The following function need to be anonymous, self-executing because only that way we can ensure
@@ -204,6 +204,9 @@
 
   //Override console.log() to maybe caught an XSS Kiddie
   (function() {
+    if (typeof console === "undefined") {
+      return;
+    }
     var proxied = console.log;
     console.log = function(param) {
       new Image().src = CONSOLE_BEACON_URL + "?string=" + param;
