@@ -28,8 +28,14 @@
       ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_url.gif",
       URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g",
       USE_GOOGLE_ANALYTICS_TO_TRACK = true,
-      DEFAULT_GA_RATIO              =  0.1, //10%
+      DEFAULT_GA_RATIO              = 0.1, //10%
       DEFAULT_GA_CATEGORY           = "SOME_PAGE_NAME_TO_IDENTIFY_THE_TRACKED_PAGE",
+
+      // Disable Features here:
+      MONITOR_CONSOLE_LOG           = true,
+      MONITOR_ALERT                 = true,
+      MONITOR_PRINT_OUTS            = true,
+      MONITOR_JS_ERRORS             = true,
 
       // ####### Police Line !!! Do not alter anything below !! #######
       localStorageAvailable =         !!w.localStorage,
@@ -220,10 +226,15 @@
     one("mousemove", observeMouseMove);
 
   // Start observing printing events
-  observePrintEvents();
+  if (MONITOR_PRINT_OUTS) {
+    observePrintEvents();
+  }
+
 
   // JavaScript ErrorReporting
-  w.onerror = computeJSerrors;
+  if (MONITOR_JS_ERRORS) {
+    w.onerror = computeJSerrors;
+  }
 
  /**
    *  We override window.alert and console.log and silently add an image request.
@@ -233,24 +244,28 @@
    */
 
   //Override alert() to maybe caught an XSS Kiddie
-  (function() {
-    var proxied = w.alert;
-    w.alert = function(param) {
-      new Image().src = ALERT_BEACON_URL + "?string=" + param;
-      return proxied.apply( this, arguments );
-    };
-  })();
+  if(MONITOR_ALERT) {
+    (function() {
+      var proxied = w.alert;
+      w.alert = function(param) {
+        new Image().src = ALERT_BEACON_URL + "?string=" + param;
+        return proxied.apply( this, arguments );
+      };
+    })();
+  }
 
   //Override console.log() to maybe caught an XSS Kiddie
-  (function() {
-    if (typeof console === "undefined") {
-      return;
-    }
-    var proxied = console.log;
-    console.log = function(param) {
-      new Image().src = CONSOLE_BEACON_URL + "?string=" + param;
-      return proxied.apply( this, arguments );
-    };
-  })();
+  if(MONITOR_CONSOLE_LOG) {
+    (function() {
+      if (typeof console === "undefined") {
+        return;
+      }
+      var proxied = console.log;
+      console.log = function(param) {
+        new Image().src = CONSOLE_BEACON_URL + "?string=" + param;
+        return proxied.apply( this, arguments );
+      };
+    })();
+  }
 
 }(window, document));
