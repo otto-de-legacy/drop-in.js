@@ -26,13 +26,27 @@
       CONSOLE_BEACON_URL =            "https://www.example.com/some_other_monitoring_url.gif",
       LIVE_URL_PATTERN =              "live.example.com", //for specifying the live env so that you dont monitor on dev or prelive envs
       ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_url.gif",
+      URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g",
+      USE_GOOGLE_ANALYTICS_TO_TRACK = true,
+      DEFAULT_GA_RATIO              =  0.1, //10%
+      DEFAULT_GA_CATEGORY           = "SOME_PAGE_NAME_TO_IDENTIFY_THE_TRACKED_PAGE",
+
+      // ####### Police Line !!! Do not alter anything below !! #######
       localStorageAvailable =         !!w.localStorage,
-      URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g";
       printTime =                     0; //Chrome has a bug that fire the event twice: https://code.google.com/p/chromium/issues/detail?id=85013
 
   if(w.location.href.indexOf(LIVE_URL_PATTERN) < 0) {
     return;
   }
+
+  /**
+   * If Google Analytics is being used, we need to keep in mind that there is one request per key/value pair.
+   * Thus we should scale the number of request with a ratio being tracked and therefore reduce the number of requests.
+   **/
+  if(USE_GOOGLE_ANALYTICS_TO_TRACK && (Math.random() > DEFAULT_GA_RATIO)) {
+    return;
+  }
+
 
   function observeMouseMove() {
     MOUSEMOVE_START_TIMESTAMP = new Date().getTime();
@@ -111,6 +125,31 @@
       resetClicksInCache();
     }
 
+    if (USE_GOOGLE_ANALYTICS_TO_TRACK) {
+      trackWithGA(dataContainer);
+    } else {
+      trackWithGETRequest(dataContainer);
+    }
+  }
+
+  /**
+   * This function is being used when tracking over GA is prefered.
+   * @precondition: _gaq is availabe in the global namespace
+   */
+  function trackWithGA(dataContainer) {
+    var _gaq = w._gaq;
+    for (val in dataContainer) {
+      _gaq.push(['_trackTiming', DEFAULT_GA_CATEGORY, val, dataContainer[val], "foo", 100]);
+      //further documentation for gaq push kann be found here:
+      //https://developers.google.com/analytics/devguides/collection/gajs/gaTrackingTiming
+    }
+  }
+
+  /**
+   * This function is being used for traditionally tracking over GET requests
+   *
+   */
+  function trackWithGETRequest(dataContainer) {
     new Image().src = RUM_BEACON_URL + "?" + $.param(dataContainer);
   }
 
