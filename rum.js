@@ -25,9 +25,11 @@
       PRINT_BEACON_URL =              "https://www.example.com/some_print_monitoring_url.gif",
       CONSOLE_BEACON_URL =            "https://www.example.com/some_other_monitoring_url.gif",
       LIVE_URL_PATTERN =              "live.example.com", //for specifying the live env so that you dont monitor on dev or prelive envs
+      LATENCY_TEST_OBJECT =           "https://www.example.com/an_image_with_less_than_1.5kb.gif",
       JS_UNITTEST_URL_PATTERN =       "SpecRunner",
       ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_url.gif",
       URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g",
+      DEBUG_FLAG_IN_URL =             "debug",
       USE_GOOGLE_ANALYTICS_TO_TRACK = false,
       DEFAULT_GA_RATIO              = 0.1, //10%
       DEFAULT_GA_CATEGORY           = "SOME_PAGE_NAME_TO_IDENTIFY_THE_TRACKED_PAGE",
@@ -37,12 +39,14 @@
       MONITOR_ALERT                 = true,
       MONITOR_PRINT_OUTS            = true,
       MONITOR_JS_ERRORS             = true,
+      MONITOR_LATENCY               = true && !!w.performance.getEntries,
 
       // ####### Police Line !!! Do not alter anything below !! #######
+      ping =                          0,
       localStorageAvailable =         !!w.localStorage,
       printTime =                     0; //Chrome has a bug that fire the event twice: https://code.google.com/p/chromium/issues/detail?id=85013
 
-  if(w.location.href.indexOf(LIVE_URL_PATTERN) < 0 && JS_UNITTEST_URL_PATTERN < 0) {
+  if((w.location.href.indexOf(LIVE_URL_PATTERN) < 0 && w.location.href.indexOf(JS_UNITTEST_URL_PATTERN) < 0) && w.location.href.indexOf(DEBUG_FLAG_IN_URL) === -1) {
     return;
   }
 
@@ -131,6 +135,10 @@
       dataContainer.clicksUntilCheckout =     localStorage.clicksUntilCheckout;
       resetPageViewsInCache();
       resetClicksInCache();
+    }
+
+    if(MONITOR_LATENCY) {
+      dataContainer.ping = ping;
     }
 
     if (USE_GOOGLE_ANALYTICS_TO_TRACK) {
@@ -226,6 +234,21 @@
   $(d).one("click", calcAndSendTimes).
     on("click", incrementClicksInCache).
     one("mousemove", observeMouseMove);
+
+
+  if(MONITOR_LATENCY) {
+    var latency_image = new Image();
+    latency_image.onload = function() {
+      var assets = w.performance.getEntries();
+      for(var i = 0; i < assets.length; i++) {
+        if(assets[i].name.indexOf(LATENCY_TEST_OBJECT) > -1) {
+          ping = Math.round(assets[i].duration); //save the ping in a scope-global var to make it immediately available in 'calcAndSendTimes'
+          break;
+        }
+      }
+    };
+    latency_image.src = LATENCY_TEST_OBJECT + "?" + new Date().getTime();
+  }
 
   // Start observing printing events
   if (MONITOR_PRINT_OUTS) {
