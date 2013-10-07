@@ -26,6 +26,7 @@
       CONSOLE_BEACON_URL =            "https://www.example.com/some_other_monitoring_url.gif",
       LIVE_URL_PATTERN =              "live.example.com", //for specifying the live env so that you dont monitor on dev or prelive envs
       LATENCY_TEST_OBJECT =           "https://www.example.com/some_url_with_less_than_1.6kb.gif",
+      JS_UNITTEST_URL_PATTERN =       "SpecRunner",
       ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_url.gif",
       URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g",
       DEBUG_FLAG_IN_URL =             "debug",
