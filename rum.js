@@ -25,8 +25,7 @@
       PRINT_BEACON_URL =              "https://www.example.com/some_print_monitoring_url.gif",
       CONSOLE_BEACON_URL =            "https://www.example.com/some_other_monitoring_url.gif",
       LIVE_URL_PATTERN =              "live.example.com", //for specifying the live env so that you dont monitor on dev or prelive envs
-      LATENCY_TEST_OBJECT =           "https://www.example.com/an_image_with_less_than_1.5kb.gif",
-      JS_UNITTEST_URL_PATTERN =       "SpecRunner",
+      LATENCY_TEST_OBJECT =           "https://www.example.com/some_url_with_less_than_1.6kb.gif",
       ALERT_BEACON_URL =              "https://www.example.com/omg_another_monitoring_url.gif",
       URL_PATTERN_FOR_CHECKOUT_PAGE = "/checkout/g",
       DEBUG_FLAG_IN_URL =             "debug",
@@ -39,7 +38,7 @@
       MONITOR_ALERT                 = true,
       MONITOR_PRINT_OUTS            = true,
       MONITOR_JS_ERRORS             = true,
-      MONITOR_LATENCY               = true && !!w.performance.getEntries,
+      MONITOR_LATENCY               = true,
 
       // ####### Police Line !!! Do not alter anything below !! #######
       ping =                          0,
@@ -101,42 +100,43 @@
     var perf =          w.performance || w.mozPerformance || w.webkitPerformance || w.msPerformance,
       now =             0,
       dataContainer   = {};
+
     /*
      * If the browser doesnt have the window.performance object(> IE9, Mozilla < 6) or
-     * in case the user leaves the site before dom:ready we just quit RUM here.
+     * in case the user leaves the site before dom:ready we just skip that one here.
      */
-    if(!perf || perf.timing.loadEventEnd === 0 || perf.timing.domComplete === 0 || perf.timing.navigationStart ===0) {
-      return;
+
+    if(perf || perf.timing.loadEventEnd !== 0 || perf.timing.domComplete !== 0 || perf.timing.navigationStart !==0) {
+      localStorageAvailable && incrementPageViewsInCache();
+
+      perf = perf.timing;
+
+      now = new Date().getTime();
+
+      dataContainer = {
+        networkTime:          perf.responseEnd- perf.navigationStart,
+        domTime:              perf.domComplete - perf.domLoading,
+        complete:             perf.loadEventEnd - perf.navigationStart,
+        dnsTime:              perf.domainLookupEnd - perf.domainLookupStart,
+        timeToFirstClick:     now - perf.navigationStart,
+        clickObject:          event.target.tagName + ":" + $.trim(event.target.innerHTML.substring(0,20)),
+        timeFromMoveToClick:  now - MOUSEMOVE_START_TIMESTAMP,
+        parentURL:            w.location.href,
+        referrer:             d.referrer,
+        htmlLength:           d.body.innerHTML.length,
+        numberStylesheets:    d.styleSheets.length
+      };
+
+      //On checkout page, reset Click and PageView Counter
+      if(localStorageAvailable && w.location.href.match(URL_PATTERN_FOR_CHECKOUT_PAGE)) {
+        dataContainer.pageViewsUntilCheckout =  localStorage.pageViewsUntilCheckout;
+        dataContainer.clicksUntilCheckout =     localStorage.clicksUntilCheckout;
+        resetPageViewsInCache();
+        resetClicksInCache();
+      }
     }
 
-    localStorageAvailable && incrementPageViewsInCache();
-
-    perf = perf.timing;
-
-    now = new Date().getTime();
-
-    dataContainer = {
-      networkTime:          perf.responseEnd- perf.navigationStart,
-      domTime:              perf.domComplete - perf.domLoading,
-      complete:             perf.loadEventEnd - perf.navigationStart,
-      dnsTime:              perf.domainLookupEnd - perf.domainLookupStart,
-      timeToFirstClick:     now - perf.navigationStart,
-      clickObject:          event.target.tagName + ":" + $.trim(event.target.innerHTML.substring(0,20)),
-      timeFromMoveToClick:  now - MOUSEMOVE_START_TIMESTAMP,
-      parentURL:            w.location.href,
-      referrer:             d.referrer,
-      htmlLength:           d.body.innerHTML.length,
-      numberStylesheets:    d.styleSheets.length
-    };
-
-    //On checkout page, reset Click and PageView Counter
-    if(localStorageAvailable && w.location.href.match(URL_PATTERN_FOR_CHECKOUT_PAGE)) {
-      dataContainer.pageViewsUntilCheckout =  localStorage.pageViewsUntilCheckout;
-      dataContainer.clicksUntilCheckout =     localStorage.clicksUntilCheckout;
-      resetPageViewsInCache();
-      resetClicksInCache();
-    }
-
+    //Append the latency here
     if(MONITOR_LATENCY) {
       dataContainer.ping = ping;
     }
@@ -237,14 +237,22 @@
 
 
   if(MONITOR_LATENCY) {
-    var latency_image = new Image();
+    var latency_image   = new Image(),
+        timestamp_start = new Date().getTime();
+
     latency_image.onload = function() {
-      var assets = w.performance.getEntries();
-      for(var i = 0; i < assets.length; i++) {
-        if(assets[i].name.indexOf(LATENCY_TEST_OBJECT) > -1) {
-          ping = Math.round(assets[i].duration); //save the ping in a scope-global var to make it immediately available in 'calcAndSendTimes'
-          break;
+      timestamp_end = new Date().getTime();
+
+      if(w.performance && !!w.performance.getEntries) {
+        var assets = w.performance.getEntries();
+        for(var i = 0; i < assets.length; i++) {
+          if(assets[i].name.indexOf(LATENCY_TEST_OBJECT) > -1) {
+            ping = Math.round(assets[i].duration); //save the ping in a scope-global var to make it immediately available in 'calcAndSendTimes'
+            break;
+          }
         }
+      } else {
+        ping = timestamp_end - timestamp_start;
       }
     };
     latency_image.src = LATENCY_TEST_OBJECT + "?" + new Date().getTime();
